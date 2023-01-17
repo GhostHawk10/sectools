@@ -1,42 +1,43 @@
 #!/usr/bin/env python3
 from collections import defaultdict
 import re
+import sys
 
 hosts = defaultdict(int)
 attacks = defaultdict(int)
 
-def read_dump(df):
-	dump = []
-	with open(df, 'r') as f:
-		lines = f.readlines()
-		for i in range(len(lines)):
-			dump.append(lines[i])
+HOST_IP = 4
+ATTACKER_IP = 2
 
-	analyze_pings(dump)
+def read_dump(df):
+        dump = []
+        with open(df, 'r') as f:
+                lines = f.readlines()
+                for i in range(len(lines)):
+                        dump.append(lines[i])
+
+        get_incoming(dump)
 
 def get_incoming(pings):
-	for ping in range(len(pings)):
-		match = re.search("ICMP echo request", pings[ping])
-		if match:
-			l = pings[ping].split(" ")
-			hosts[l[4][:-1]] += 1
-			attacks[l[2]] += 1
-
-
-def analyze_pings(pings):
-	get_incoming(pings)
-		#0 = timestamp
-		#2 = source
-		#4 = destination
+        for ping in range(len(pings)):
+                match = re.search("ICMP echo request", pings[ping])
+                if match:
+                        l = pings[ping].split(" ")
+                        hosts[l[HOST_IP][:-1]] += 1
+                        attacks[l[ATTACKER_IP]] += 1
 
 def display_dashboard():
-	print("Attacker IP" + "\t" + "Count")
-	for i in attacks.keys():
-		print(str(i) + "\t" + str(attacks[i]))
-	print("")
-	print("Target" + "\t\t" + "Count")
-	for j in hosts.keys():
-		print(str(j) + "\t" + str(hosts[j]))
+        print(f"Attacker IP \t Count")
+        for i in attacks.keys():
+                print(f"{str(i)} \t {str(attacks[i])}")
+        print("")
+        print(f"Target \t\t Count")
+        for j in hosts.keys():
+                print(f"{str(j)} \t {str(hosts[j])}")
 
-read_dump('dump.txt')
-display_dashboard()
+try:
+        read_dump(sys.argv[1])
+        display_dashboard()
+except:
+        print("File not found.")
+        print("Usage: ./pingsweepdetect.py <filename.txt>")
