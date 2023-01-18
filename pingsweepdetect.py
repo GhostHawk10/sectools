@@ -2,6 +2,8 @@
 from collections import defaultdict
 import re
 import sys
+import time
+from curses import wrapper
 
 hosts = defaultdict(int)
 attacks = defaultdict(int)
@@ -10,34 +12,55 @@ HOST_IP = 4
 ATTACKER_IP = 2
 
 def read_dump(df):
-        dump = []
-        with open(df, 'r') as f:
-                lines = f.readlines()
-                for i in range(len(lines)):
-                        dump.append(lines[i])
+	dump = []
+	hosts.clear()
+	attacks.clear()
 
-        get_incoming(dump)
+	with open(df, 'r') as f:
+		lines = f.readlines()
+		for i in range(len(lines)):
+			dump.append(lines[i])
+
+	get_incoming(dump)
 
 def get_incoming(pings):
-        for ping in range(len(pings)):
-                match = re.search("ICMP echo request", pings[ping])
-                if match:
-                        l = pings[ping].split(" ")
-                        hosts[l[HOST_IP][:-1]] += 1
-                        attacks[l[ATTACKER_IP]] += 1
+	for ping in range(len(pings)):
+		match = re.search("ICMP echo request", pings[ping])
+		if match:
+			l = pings[ping].split(" ")
+			hosts[l[HOST_IP][:-1]] += 1
+			attacks[l[ATTACKER_IP]] += 1
 
-def display_dashboard():
-        print(f"Attacker IP \t Count")
-        for i in attacks.keys():
-                print(f"{str(i)} \t {str(attacks[i])}")
-        print("")
-        print(f"Target \t\t Count")
-        for j in hosts.keys():
-                print(f"{str(j)} \t {str(hosts[j])}")
+def display_dashboard(screen):
+	screen.clear()
+	screen.addstr(0, 0, "Attacker IP \t Count")
 
-try:
-        read_dump(sys.argv[1])
-        display_dashboard()
-except:
-        print("File not found.")
-        print("Usage: ./pingsweepdetect.py <filename.txt>")
+	for i in range(len(attacks)):
+		ip = str(list(attacks.keys())[i])
+		counter = str(list(attacks.values())[i])
+		screen.addstr(1+i, 0, f"{ip} \t {counter}")
+
+	screen.addstr(len(attacks) + 4, 0, f"Target \t\t Count")
+
+	for j in range(len(hosts)):
+		ip = str(list(hosts.keys())[j])
+		counter = str(list(hosts.values())[j])
+		screen.addstr((len(attacks)+5)+j, 0, f"{ip} \t {counter}")
+
+	screen.refresh()
+
+def continue_read(df, screen):
+	while True:
+		read_dump(df)
+		display_dashboard(screen)
+		time.sleep(10)
+
+def main(screen):
+	try:
+		continue_read(sys.argv[1], screen)
+	except Exception as err:
+		print(err)
+		print("Usage: ./pingsweepdetect.py <filename.txt>")
+
+if __name__ == "__main__":
+        wrapper(main)
